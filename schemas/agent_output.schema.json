@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bmr-framework.io/schemas/agent_output.schema.json",
+  "title": "BMR Agent Output",
+  "description": "Schema for validating BMR agent outputs (v1.0)",
+
+  "$defs": {
+    "base_output": {
+      "type": "object",
+      "required": ["intent", "assumptions", "inputs_used", "confidence", "uncertainty_notes", "recommended_next_actions"],
+      "properties": {
+        "intent": {
+          "type": "string",
+          "description": "The purpose of this agent output"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicit assumptions underlying this output"
+        },
+        "inputs_used": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Artifact IDs or references used as inputs"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Confidence score for this output"
+        },
+        "uncertainty_notes": {
+          "type": "string",
+          "description": "Explicit statement of uncertainties and limitations"
+        },
+        "recommended_next_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Suggested next workflow steps"
+        }
+      }
+    },
+
+    "rl_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["objective", "constraints", "success_metrics", "failure_conditions"],
+          "properties": {
+            "intent": { "const": "define_objective" },
+            "objective": {
+              "type": "object",
+              "required": ["primary"],
+              "properties": {
+                "primary": { "type": "string" },
+                "secondary": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            },
+            "constraints": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "type", "value"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "type": { "enum": ["hard", "soft"] },
+                  "value": {}
+                }
+              }
+            },
+            "success_metrics": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "failure_conditions": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+
+    "hypo_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["hypotheses"],
+          "properties": {
+            "intent": { "const": "generate_hypotheses" },
+            "hypotheses": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["id", "mechanism", "expected_effect", "measurable_discriminator", "falsification_test"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^H[0-9]+$"
+                  },
+                  "mechanism": { "type": "string" },
+                  "expected_effect": {
+                    "enum": ["increase", "decrease", "tradeoff"]
+                  },
+                  "measurable_discriminator": { "type": "string" },
+                  "falsification_test": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "doe_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["doe_batch", "estimated_cost_usd"],
+          "properties": {
+            "intent": { "const": "design_doe" },
+            "doe_batch": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["experiment_id", "variables", "hypothesis_tested", "expected_information_gain"],
+                "properties": {
+                  "experiment_id": {
+                    "type": "string",
+                    "pattern": "^E[0-9]+$"
+                  },
+                  "variables": { "type": "object" },
+                  "hypothesis_tested": { "type": "string" },
+                  "expected_information_gain": { "type": "string" }
+                }
+              }
+            },
+            "estimated_cost_usd": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+
+    "sim_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["assignments", "estimated_cost_usd"],
+          "properties": {
+            "intent": { "const": "assign_simulation_fidelity" },
+            "assignments": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["experiment_id", "method", "method_level", "implementation_tier", "implementation_id", "justification"],
+                "properties": {
+                  "experiment_id": { "type": "string" },
+                  "method": {
+                    "enum": ["ML", "CALPHAD", "DFT", "MICROMAG"]
+                  },
+                  "method_level": {
+                    "type": "string",
+                    "pattern": "^L[0-5]$",
+                    "description": "Method fidelity level (L0-L5)"
+                  },
+                  "implementation_tier": {
+                    "type": "string",
+                    "pattern": "^T[0-3]$",
+                    "description": "Implementation fidelity tier (T0-T3)"
+                  },
+                  "implementation_id": { "type": "string" },
+                  "justification": { "type": "string" }
+                }
+              }
+            },
+            "estimated_cost_usd": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+
+    "ml_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["model_updates", "performance_summary", "uncertainty_change"],
+          "properties": {
+            "intent": { "const": "update_models" },
+            "model_updates": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "performance_summary": { "type": "string" },
+            "uncertainty_change": {
+              "enum": ["increase", "decrease", "unchanged"]
+            }
+          }
+        }
+      ]
+    },
+
+    "skep_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["flags", "risk_level", "force_human_review"],
+          "properties": {
+            "intent": { "const": "skeptic_review" },
+            "flags": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "risk_level": {
+              "enum": ["low", "medium", "high"]
+            },
+            "force_human_review": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+
+    "scribe_output": {
+      "allOf": [
+        { "$ref": "#/$defs/base_output" },
+        {
+          "type": "object",
+          "required": ["summary", "key_findings", "risks", "ip_relevance"],
+          "properties": {
+            "intent": { "const": "generate_memo" },
+            "summary": { "type": "string" },
+            "key_findings": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "risks": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "ip_relevance": {
+              "enum": ["low", "medium", "high"]
+            }
+          }
+        }
+      ]
+    }
+  },
+
+  "oneOf": [
+    { "$ref": "#/$defs/rl_output" },
+    { "$ref": "#/$defs/hypo_output" },
+    { "$ref": "#/$defs/doe_output" },
+    { "$ref": "#/$defs/sim_output" },
+    { "$ref": "#/$defs/ml_output" },
+    { "$ref": "#/$defs/skep_output" },
+    { "$ref": "#/$defs/scribe_output" }
+  ]
+}

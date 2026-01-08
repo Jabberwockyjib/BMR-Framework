@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bmr-framework.io/schemas/tool_registry.schema.json",
+  "title": "BMR Tool Registry",
+  "description": "Schema for validating BMR tool registry files (v0.2.0)",
+  "type": "object",
+  "required": ["schema_version", "scope", "core_principles", "ontology", "contracts", "physics_graph", "tools"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version of the schema"
+    },
+    "generated_on": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the registry was generated"
+    },
+    "scope": {
+      "type": "string",
+      "description": "Description of the registry scope"
+    },
+    "core_principles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Immutable principles governing the framework"
+    },
+    "ontology": {
+      "type": "object",
+      "required": ["kpis", "run_status", "failure_classes"],
+      "properties": {
+        "kpis": {
+          "type": "object",
+          "description": "KPI definitions grouped by category",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/kpi_definition"
+            }
+          }
+        },
+        "run_status": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["success", "failed", "partial"]
+          }
+        },
+        "failure_classes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Valid failure classification codes"
+        }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "required": ["artifact_layout", "run_json_minimum", "results_json_minimum"],
+      "properties": {
+        "artifact_layout": {
+          "type": "object",
+          "required": ["inputs_dir", "outputs_dir", "logs_dir"],
+          "properties": {
+            "inputs_dir": { "type": "string" },
+            "outputs_dir": { "type": "string" },
+            "logs_dir": { "type": "string" },
+            "run_metadata": { "type": "string" },
+            "results": { "type": "string" },
+            "provenance": { "type": "string" }
+          }
+        },
+        "run_json_minimum": { "type": "object" },
+        "results_json_minimum": { "type": "object" }
+      }
+    },
+    "physics_graph": {
+      "type": "object",
+      "required": ["problem_nodes", "implementations"],
+      "properties": {
+        "problem_nodes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/problem_node" }
+        },
+        "implementations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/implementation" }
+        },
+        "decision_policy_hooks": {
+          "type": "object",
+          "description": "Hooks for fidelity escalation decisions"
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool" },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "kpi_definition": {
+      "type": "object",
+      "required": ["type", "unit"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["float", "int", "string", "bool"]
+        },
+        "unit": { "type": "string" }
+      }
+    },
+    "problem_node": {
+      "type": "object",
+      "required": ["id", "name", "requires", "inputs", "outputs", "fidelity_ladder"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^P[0-9]+_",
+          "description": "Problem node ID (e.g., P4_field_homogeneity)"
+        },
+        "name": { "type": "string" },
+        "taxonomy_refs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["physics_domain", "type"],
+            "properties": {
+              "physics_domain": { "type": "string" },
+              "type": { "type": "string" }
+            }
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "outputs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "acceptance": {
+          "type": "object",
+          "description": "Acceptance criteria for KPIs"
+        },
+        "fidelity_ladder": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Implementation IDs in ascending fidelity order"
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "required": ["id", "tool_id", "capabilities", "fidelity", "runner", "hardware"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^I_",
+          "description": "Implementation ID (e.g., I_femm_2d)"
+        },
+        "tool_id": { "type": "string" },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "fidelity": {
+          "type": "object",
+          "required": ["tier"],
+          "properties": {
+            "tier": {
+              "type": "string",
+              "enum": ["T0", "T1", "T2", "T3"],
+              "description": "Implementation fidelity tier"
+            },
+            "expected_error_pct": { "type": "number" },
+            "typical_wall_s": { "type": "number" }
+          }
+        },
+        "runner": {
+          "type": "object",
+          "required": ["command", "inputs", "outputs"],
+          "properties": {
+            "command": { "type": "string" },
+            "inputs": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "outputs": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "hardware": {
+          "type": "object",
+          "required": ["cpu_cores", "gpu", "memory_gb"],
+          "properties": {
+            "cpu_cores": { "type": "integer", "minimum": 1 },
+            "gpu": { "type": "boolean" },
+            "memory_gb": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "required": ["id", "name", "primary_interface", "capabilities"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "primary_interface": { "type": "string" },
+        "links": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        },
+        "install": {
+          "type": "object",
+          "properties": {
+            "preferred": { "type": "string" },
+            "notes": { "type": "string" }
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "io": {
+          "type": "object",
+          "description": "Input/output format specifications"
+        }
+      }
+    }
+  }
+}

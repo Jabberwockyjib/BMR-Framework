@@ -55,6 +55,7 @@ Required Output Schema
 {
   "intent": "define_objective",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "objective": {
     "primary": "string",
     "secondary": ["string"]
@@ -94,6 +95,7 @@ Required Output Schema
 {
   "intent": "generate_hypotheses",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "hypotheses": [
     {
       "id": "H1",
@@ -135,6 +137,7 @@ Required Output Schema
 {
   "intent": "design_doe",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "doe_batch": [
     {
       "experiment_id": "E1",
@@ -143,7 +146,7 @@ Required Output Schema
       "expected_information_gain": "string"
     }
   ],
-  "estimated_cost": "usd",
+  "estimated_cost_usd": 0.0,
   "confidence": 0.0,
   "uncertainty_notes": "string",
   "recommended_next_actions": ["assign_fidelity"]
@@ -174,15 +177,18 @@ Required Output Schema
 {
   "intent": "assign_simulation_fidelity",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "assignments": [
     {
       "experiment_id": "E1",
       "method": "ML|CALPHAD|DFT|MICROMAG",
-      "fidelity_level": "L1-L5",
+      "method_level": "L0-L5",
+      "implementation_tier": "T0-T3",
+      "implementation_id": "string",
       "justification": "string"
     }
   ],
-  "estimated_cost": "usd",
+  "estimated_cost_usd": 0.0,
   "confidence": 0.0,
   "uncertainty_notes": "string",
   "recommended_next_actions": ["execute"]
@@ -215,6 +221,7 @@ Required Output Schema
 {
   "intent": "update_models",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "model_updates": ["model_id"],
   "performance_summary": "string",
   "uncertainty_change": "increase|decrease|unchanged",
@@ -251,6 +258,7 @@ Required Output Schema
 {
   "intent": "skeptic_review",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "flags": ["string"],
   "risk_level": "low|medium|high",
   "force_human_review": true,
@@ -286,6 +294,7 @@ Required Output Schema
 {
   "intent": "generate_memo",
   "assumptions": ["..."],
+  "inputs_used": ["artifact_ids"],
   "summary": "string",
   "key_findings": ["string"],
   "risks": ["string"],

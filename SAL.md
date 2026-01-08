@@ -14,15 +14,24 @@ SAL exists to:
 - Enable multi-fidelity, multi-physics orchestration
 - Accumulate irreversible, executable scientific knowledge
 
-SAL replaces informal “hypotheses” with **testable claims** and enforces a single canonical loop:
+SAL replaces informal "hypotheses" with **testable claims** and enforces a single canonical loop:
 
 ```
 CLAIM → INTERVENTION → TEST → UPDATE → (new CLAIM)
 ```
 
-No step is optional.  
-No step may be skipped.  
+No step is optional.
+No step may be skipped.
 No step may reference entities outside the system ontology.
+
+**Implementation:** The SAL loop maps directly to the `closed-loop-iteration` workflow in [BMR-WORKFLOWS.md](BMR-WORKFLOWS.md):
+
+| SAL Step | Workflow Step | Agent |
+|----------|---------------|-------|
+| CLAIM | HS-3 (hypothesis generation) | HYPO |
+| INTERVENTION | DOE-1, DOE-2 (DOE + fidelity) | DOE, SIM |
+| TEST | CL-1 (execution) | SYSTEM |
+| UPDATE | CL-2, CL-3 (model + hypothesis eval) | ML, HYPO |
 
 ---
 

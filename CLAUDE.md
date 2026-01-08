@@ -32,12 +32,16 @@ BMR Framework
 | `SAL.md` | Scientific Action Language - formal closed-loop research methodology |
 | `magnet_taxonomy_v1.md` | Problem taxonomy mapping physics domains to tools |
 | `agent_prompts.md` | System prompts and JSON schemas for 7 canonical agent roles |
-| `BMR-*.md` stubs | Placeholder documents for core, workflows, tool contracts, adapters |
+| `BMR-CORE.md` | Core specification: principles, architecture, agent contracts |
+| `BMR-WORKFLOWS.md` | Canonical workflows: hypothesis-sprint, doe-plan, closed-loop-iteration |
+| `BMR-TOOL-CONTRACTS.md` | Tool execution interface specification |
+| `BMR-MAGNETS-ADAPTER.md` | Permanent magnet wedge adapter |
+| `BMR-REFERENCE-CAMPAIGN.md` | Worked reference campaign example |
 
 ## Core Design Principles
 
 1. **Physics-First**: Nodes represent physical questions; tools are implementations
-2. **Multi-Fidelity**: Start with lowest-cost method meeting uncertainty targets (T0 → T1 → T2 → T3)
+2. **Multi-Fidelity**: Two fidelity hierarchies — L-levels (method: L0-L5) and T-tiers (implementation: T0-T3). Start at lowest fidelity meeting uncertainty targets.
 3. **Closed-Loop**: Every simulation produces standardized KPIs + uncertainty + provenance
 4. **Failure-Aware**: Failed runs are classified and update constraints/priors
 5. **Agent-Orchestrated**: Agents propose actions via structured JSON; no direct tool execution
