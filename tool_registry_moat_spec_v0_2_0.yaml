@@ -1,0 +1,540 @@
+schema_version: 0.2.0
+generated_on: '2026-01-05'
+scope: 'Magnets wedge: EM + micromagnetics + thermo + structural + materials discovery. CLI/container-first.'
+core_principles:
+- 'Physics-first: nodes represent physical questions, tools are implementations.'
+- 'Multi-fidelity: always start at lowest-cost method that meets uncertainty targets.'
+- 'Closed-loop: every run produces standardized KPIs + uncertainty + provenance.'
+- 'Failure-aware: failed runs are classified and used to update constraints/priors.'
+ontology:
+  kpis:
+    field:
+      B_roi_mean_T:
+        type: float
+        unit: T
+      B_roi_std_T:
+        type: float
+        unit: T
+      field_homogeneity_ppm:
+        type: float
+        unit: ppm
+      stray_field_max_T:
+        type: float
+        unit: T
+    motor:
+      torque_mean_Nm:
+        type: float
+        unit: N*m
+      torque_ripple_pct:
+        type: float
+        unit: '%'
+      back_emf_Vrms:
+        type: float
+        unit: V
+      loss_core_W:
+        type: float
+        unit: W
+      loss_magnet_W:
+        type: float
+        unit: W
+      loss_copper_W:
+        type: float
+        unit: W
+      efficiency_pct:
+        type: float
+        unit: '%'
+    thermal:
+      T_hotspot_C:
+        type: float
+        unit: C
+      T_roi_max_C:
+        type: float
+        unit: C
+      time_to_limit_s:
+        type: float
+        unit: s
+    demag:
+      demag_margin_min:
+        type: float
+        unit: dimensionless
+      demag_volume_pct:
+        type: float
+        unit: '%'
+      H_int_min_Apm:
+        type: float
+        unit: A/m
+      HcJ_min_Apm:
+        type: float
+        unit: A/m
+    micromagnetics:
+      Hc_Apm:
+        type: float
+        unit: A/m
+      Br_T:
+        type: float
+        unit: T
+      BHmax_kJm3:
+        type: float
+        unit: kJ/m^3
+      loop_area_Jm3:
+        type: float
+        unit: J/m^3
+      switching_field_std_Apm:
+        type: float
+        unit: A/m
+    structural:
+      sigma_vm_max_MPa:
+        type: float
+        unit: MPa
+      sigma_1_max_MPa:
+        type: float
+        unit: MPa
+      disp_max_mm:
+        type: float
+        unit: mm
+      sf_min:
+        type: float
+        unit: dimensionless
+    materials:
+      Ms_muB_per_fu:
+        type: float
+        unit: muB/f.u.
+      MAE_meV_per_fu:
+        type: float
+        unit: meV/f.u.
+      deltaE_hull_meV_per_atom:
+        type: float
+        unit: meV/atom
+      Tc_K:
+        type: float
+        unit: K
+  run_status:
+  - success
+  - failed
+  - partial
+  failure_classes:
+  - non_convergence
+  - mesh_quality
+  - time_step_instability
+  - material_model_invalid
+  - out_of_domain
+  - license_or_env
+  - unknown
+contracts:
+  artifact_layout:
+    inputs_dir: inputs/
+    outputs_dir: outputs/
+    logs_dir: logs/
+    run_metadata: run.json
+    results: results.json
+    provenance: provenance.json
+  run_json_minimum:
+    run_id: uuid
+    problem_node_id: string
+    implementation_id: string
+    parameters: object
+    resources_requested:
+      cpu_cores: int
+      gpu: bool
+      memory_gb: float
+    budgets:
+      max_wall_s: int
+      max_cost_units: float
+    inputs:
+    - list of relative paths
+    expected_outputs:
+    - list of relative paths
+  results_json_minimum:
+    status: success|failed|partial
+    tool:
+      name: string
+      version: string
+    kpis: object
+    uncertainty:
+      method: string
+      confidence: float
+      intervals: object
+    artifacts:
+      fields: []
+      plots: []
+      tables: []
+    failure:
+      class: string
+      message: string
+      hints:
+      - string
+physics_graph:
+  problem_nodes:
+  - id: P4_field_homogeneity
+    name: Magnet assembly field strength & homogeneity
+    taxonomy_refs:
+    - '4'
+    requires:
+    - physics_domain: electromagnetics
+      type: magnetostatics
+    inputs:
+    - geometry
+    - materials.BH_curves
+    - magnet_properties.Br(T),HcJ(T)
+    - roi_definition
+    outputs:
+    - field.B_roi_mean_T
+    - field.field_homogeneity_ppm
+    - field.stray_field_max_T
+    acceptance:
+      field.field_homogeneity_ppm:
+        lte: 5000
+    fidelity_ladder:
+    - I_femm_2d
+    - I_elmer_3d_coarse
+    - I_elmer_3d_refined
+  - id: P6_demag_derating
+    name: Coupled EM-thermal demagnetization derating
+    taxonomy_refs:
+    - '6'
+    requires:
+    - physics_domain: electromagnetics
+      type: eddy_currents
+    - physics_domain: thermal
+      type: heat_transfer
+    inputs:
+    - geometry
+    - drive_cycle
+    - cooling_BCs
+    - magnet_properties.HcJ(T),Br(T)
+    - loss_models
+    outputs:
+    - thermal.T_hotspot_C
+    - demag.demag_margin_min
+    - demag.demag_volume_pct
+    acceptance:
+      demag.demag_margin_min:
+        gte: 0.15
+    fidelity_ladder:
+    - I_elmer_em_coarse_plus_lumped_thermal
+    - I_elmer_em_thermal_iterated
+    - I_elmer_em_thermal_plus_cfd
+  - id: P2_coercivity_mechanisms
+    name: "Microstructure \u2192 coercivity & switching distribution"
+    taxonomy_refs:
+    - '2'
+    requires:
+    - physics_domain: micromagnetics
+      type: hysteresis
+    inputs:
+    - microstructure.grain_map
+    - params.Ms,K1,A,alpha
+    - temperature
+    outputs:
+    - micromagnetics.Hc_Apm
+    - micromagnetics.switching_field_std_Apm
+    acceptance:
+      micromagnetics.Hc_Apm:
+        gte: 800000
+    fidelity_ladder:
+    - I_mumax_gpu_sweep
+    - I_oommf_cpu_validation
+  implementations:
+  - id: I_femm_2d
+    tool_id: femm
+    capabilities:
+    - magnetostatics
+    - force_torque
+    - 2d_screening
+    fidelity:
+      tier: T0
+      expected_error_pct: 20
+      typical_wall_s: 10
+    runner:
+      command: femm.exe -lua-script={script}
+      inputs:
+      - inputs/model.lua
+      outputs:
+      - outputs/kpis.csv
+    hardware:
+      cpu_cores: 1
+      gpu: false
+      memory_gb: 1
+  - id: I_elmer_3d_coarse
+    tool_id: elmer
+    capabilities:
+    - magnetostatics
+    - nonlinear_mu
+    - 3d
+    fidelity:
+      tier: T1
+      expected_error_pct: 8
+      typical_wall_s: 600
+    runner:
+      command: ElmerSolver inputs/model.sif > logs/elmer.log 2>&1
+      inputs:
+      - inputs/model.sif
+      - inputs/mesh/
+      outputs:
+      - outputs/fields.vtu
+    hardware:
+      cpu_cores: 8
+      gpu: false
+      memory_gb: 16
+  - id: I_elmer_3d_refined
+    tool_id: elmer
+    capabilities:
+    - magnetostatics
+    - nonlinear_mu
+    - 3d
+    - refinement
+    fidelity:
+      tier: T2
+      expected_error_pct: 3
+      typical_wall_s: 7200
+    runner:
+      command: ElmerSolver inputs/model.sif > logs/elmer.log 2>&1
+      inputs:
+      - inputs/model.sif
+      - inputs/mesh/
+      outputs:
+      - outputs/fields.vtu
+    hardware:
+      cpu_cores: 32
+      gpu: false
+      memory_gb: 64
+  - id: I_elmer_em_coarse_plus_lumped_thermal
+    tool_id: elmer
+    capabilities:
+    - transient_em
+    - eddy_currents
+    - loss_density
+    - lumped_thermal
+    fidelity:
+      tier: T1
+      expected_error_pct: 12
+      typical_wall_s: 1800
+    runner:
+      command: ElmerSolver inputs/em.sif > logs/elmer_em.log 2>&1 && python inputs/lumped_thermal.py > logs/lumped.log 2>&1
+      inputs:
+      - inputs/em.sif
+      - inputs/mesh/
+      - inputs/lumped_thermal.py
+      outputs:
+      - outputs/loss.vtu
+      - outputs/temperature.csv
+    hardware:
+      cpu_cores: 16
+      gpu: false
+      memory_gb: 32
+  - id: I_elmer_em_thermal_iterated
+    tool_id: elmer
+    capabilities:
+    - transient_em
+    - eddy_currents
+    - thermal
+    - iterative_coupling
+    fidelity:
+      tier: T2
+      expected_error_pct: 5
+      typical_wall_s: 14400
+    runner:
+      command: ElmerSolver inputs/coupled.sif > logs/elmer_coupled.log 2>&1
+      inputs:
+      - inputs/coupled.sif
+      - inputs/mesh/
+      outputs:
+      - outputs/loss.vtu
+      - outputs/temperature.vtu
+    hardware:
+      cpu_cores: 48
+      gpu: false
+      memory_gb: 96
+  - id: I_elmer_em_thermal_plus_cfd
+    tool_id: openfoam
+    capabilities:
+    - cht_cooling
+    - cfd_heat_transfer
+    fidelity:
+      tier: T3
+      expected_error_pct: 3
+      typical_wall_s: 28800
+    runner:
+      command: bash -lc 'cd inputs/case && {solver} -case . > ../../logs/of.log 2>&1'
+      inputs:
+      - inputs/case/
+      outputs:
+      - outputs/temperature.vtu
+    hardware:
+      cpu_cores: 64
+      gpu: false
+      memory_gb: 128
+  - id: I_mumax_gpu_sweep
+    tool_id: mumax3
+    capabilities:
+    - micromagnetics
+    - gpu
+    - parameter_sweeps
+    - hysteresis
+    fidelity:
+      tier: T1
+      expected_error_pct: 10
+      typical_wall_s: 300
+    runner:
+      command: mumax3 inputs/model.mx3 > logs/mumax.log 2>&1
+      inputs:
+      - inputs/model.mx3
+      outputs:
+      - outputs/loops.csv
+    hardware:
+      cpu_cores: 8
+      gpu: true
+      memory_gb: 16
+  - id: I_oommf_cpu_validation
+    tool_id: oommf
+    capabilities:
+    - micromagnetics
+    - validation
+    - hysteresis
+    fidelity:
+      tier: T2
+      expected_error_pct: 6
+      typical_wall_s: 3600
+    runner:
+      command: oommf.tcl boxsi inputs/model.mif > logs/oommf.log 2>&1
+      inputs:
+      - inputs/model.mif
+      outputs:
+      - outputs/loops.csv
+    hardware:
+      cpu_cores: 16
+      gpu: false
+      memory_gb: 32
+  decision_policy_hooks:
+    value_of_information:
+      inputs:
+      - current_uncertainty
+      - expected_error_pct
+      - compute_cost_units
+      output: expected_value_score
+      default_rule: escalate fidelity only if (uncertainty_reduction / cost_units) exceeds threshold
+    trust_region:
+      rule: do not propose parameters outside training domain unless a physics-ground-truth run is scheduled
+tools:
+- id: elmer
+  name: Elmer FEM
+  primary_interface: CLI
+  links:
+  - https://www.csc.fi/web/elmer
+  - https://github.com/ElmerCSC/elmerfem
+  install:
+    preferred: container
+    notes: Pin version; include ElmerGrid and ParaView exporters.
+  capabilities:
+  - magnetostatics
+  - transient_em
+  - eddy_currents
+  - thermal
+  - multiphysics
+  - torque_force
+  io:
+    mesh:
+    - gmsh .msh -> ElmerGrid
+    fields:
+    - VTU/VTK
+    materials:
+    - BH curves
+    - Br(T),HcJ(T)
+- id: femm
+  name: FEMM
+  primary_interface: Lua scripting
+  links:
+  - http://www.femm.info/wiki/HomePage
+  capabilities:
+  - magnetostatics
+  - 2d_screening
+  - torque_force
+  install:
+    preferred: wine_or_windows_vm
+    notes: Use Lua batch runs.
+- id: mumax3
+  name: MuMax3
+  primary_interface: CLI
+  links:
+  - https://mumax.github.io/
+  capabilities:
+  - micromagnetics
+  - gpu
+  - hysteresis
+  - domain_dynamics
+  install:
+    preferred: container
+    notes: NVIDIA GPU runtime recommended.
+- id: oommf
+  name: OOMMF
+  primary_interface: CLI
+  links:
+  - https://math.nist.gov/oommf/
+  capabilities:
+  - micromagnetics
+  - validation
+  - hysteresis
+  install:
+    preferred: container_or_native
+    notes: Cross-platform; Tcl/Tk dependencies.
+- id: openfoam
+  name: OpenFOAM
+  primary_interface: CLI
+  links:
+  - https://www.openfoam.org/
+  - https://www.openfoam.com/
+  capabilities:
+  - cfd
+  - cht_cooling
+  - thermal
+  install:
+    preferred: container
+    notes: Pin solver distribution/version.
+- id: gmsh
+  name: Gmsh
+  primary_interface: CLI
+  links:
+  - https://gmsh.info/
+  capabilities:
+  - geometry
+  - meshing
+  - parametric
+  install:
+    preferred: native_or_container
+    notes: Use physical groups for BC tagging.
+- id: paraview
+  name: ParaView
+  primary_interface: pvpython
+  links:
+  - https://www.paraview.org/
+  capabilities:
+  - postprocessing
+  - kpi_extraction
+  - batch_plots
+  install:
+    preferred: container_or_native
+    notes: Use pvpython scripts to emit results.json.
+- id: qe
+  name: Quantum ESPRESSO
+  primary_interface: MPI/CLI
+  links:
+  - https://www.quantum-espresso.org/
+  capabilities:
+  - dft
+  - spin_polarized
+  - soc_mae
+  install:
+    preferred: hpc_module_or_container
+    notes: Use ASE/pymatgen for IO.
+- id: aiida
+  name: AiiDA
+  primary_interface: Python/CLI
+  links:
+  - https://www.aiida.net/
+  capabilities:
+  - provenance
+  - caching
+  - workflow_orchestration
+  install:
+    preferred: service
+    notes: Backed by Postgres; store workflow graph.

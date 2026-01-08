@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1.0",
+  "generated_on": "2026-01-05",
+  "purpose": "Agent-consumable registry for magnet & EM R&D tools",
+  "tools": [
+    {
+      "id": "elmer",
+      "name": "Elmer FEM",
+      "category": [
+        "EM",
+        "Thermal",
+        "Multiphysics"
+      ],
+      "interface": "CLI",
+      "url": "https://www.csc.fi/web/elmer"
+    },
+    {
+      "id": "mumax3",
+      "name": "MuMax3",
+      "category": [
+        "Micromagnetics",
+        "GPU"
+      ],
+      "interface": "CLI",
+      "url": "https://mumax.github.io/"
+    },
+    {
+      "id": "oommf",
+      "name": "OOMMF",
+      "category": [
+        "Micromagnetics"
+      ],
+      "interface": "CLI",
+      "url": "https://math.nist.gov/oommf/"
+    },
+    {
+      "id": "femm",
+      "name": "FEMM",
+      "category": [
+        "EM",
+        "2D"
+      ],
+      "interface": "Lua",
+      "url": "http://www.femm.info"
+    },
+    {
+      "id": "qe",
+      "name": "Quantum ESPRESSO",
+      "category": [
+        "DFT",
+        "Magnetism"
+      ],
+      "interface": "MPI/CLI",
+      "url": "https://www.quantum-espresso.org/"
+    },
+    {
+      "id": "cp2k",
+      "name": "CP2K",
+      "category": [
+        "DFT",
+        "AIMD"
+      ],
+      "interface": "MPI/CLI",
+      "url": "https://www.cp2k.org/"
+    },
+    {
+      "id": "gmsh",
+      "name": "Gmsh",
+      "category": [
+        "Meshing"
+      ],
+      "interface": "CLI",
+      "url": "https://gmsh.info/"
+    },
+    {
+      "id": "paraview",
+      "name": "ParaView",
+      "category": [
+        "PostProcessing"
+      ],
+      "interface": "pvpython",
+      "url": "https://www.paraview.org/"
+    },
+    {
+      "id": "calculix",
+      "name": "CalculiX",
+      "category": [
+        "FEA"
+      ],
+      "interface": "CLI",
+      "url": "https://www.calculix.de/"
+    },
+    {
+      "id": "aiida",
+      "name": "AiiDA",
+      "category": [
+        "Workflow",
+        "Provenance"
+      ],
+      "interface": "Python/CLI",
+      "url": "https://www.aiida.net/"
+    }
+  ]
+}
